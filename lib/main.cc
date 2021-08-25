@@ -1,13 +1,12 @@
 
 
-#include "rtweekend.h"
-
-#include "color.h"
-#include "ray.h"
-#include "vec3.h"
-#include "hittable_list.h"
-#include "sphere.h"
-#include "bitmap.h"
+#include "src/rtweekend.h"
+#include "src/color.h"
+#include "src/ray.h"
+#include "src/vec3.h"
+#include "src/hittable_list.h"
+#include "src/sphere.h"
+#include "src/bitmap.h"
 
 #include <string>
 #include <iostream>
