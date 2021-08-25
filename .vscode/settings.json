@@ -46,7 +46,8 @@
     "xstddef": "cpp",
     "xstring": "cpp",
     "xtr1common": "cpp",
-    "xutility": "cpp"
+    "xutility": "cpp",
+    "string": "cpp"
   },
   "C_Cpp.errorSquiggles": "Enabled"
 }
