@@ -15,13 +15,22 @@
 
 using namespace std;
 
-color ray_color(const ray &r, const hittable &world)
+color ray_color(const ray &r, const hittable &world, int depth)
 {
     hit_record rec;
-    if (world.hit(r, 0, infinity, rec))
+
+    // If we've exceeded the ray bounce limit, no more light is gathered.
+    if (depth <= 0)
     {
-        return 0.5 * (rec.normal + color(1, 1, 1));
+        return color(0, 0, 0);
     }
+
+    if (world.hit(r, 0.001, infinity, rec))
+    {
+        point3 target = rec.p + rec.normal + random_unit_vector();
+        return 0.5 * ray_color(ray(rec.p, target - rec.p), world, depth - 1);
+    }
+
     vec3 unit_direction = unit_vector(r.direction());
     auto t = 0.5 * (unit_direction.y() + 1.0);
     return (1.0 - t) * color(1.0, 1.0, 1.0) + t * color(0.5, 0.7, 1.0);
@@ -58,6 +67,7 @@ int main()
     const int image_width = 400;
     const int image_height = static_cast<int>(image_width / aspect_ratio);
     const int samples_per_pixel = 100;
+    const int max_depth = 50;
 
     img = new unsigned char[image_width * image_height * 3 * sizeof(int)];
     cel_size = sizeof(unsigned char) * 3;
@@ -81,24 +91,24 @@ int main()
                 auto u = (i + random_double()) / (image_width - 1);
                 auto v = (j + random_double()) / (image_height - 1);
                 ray r = cam.get_ray(u, v);
-                pixel_color += ray_color(r, world);
+                pixel_color += ray_color(r, world, max_depth);
             }
 
-            int ir = static_cast<int>(255.999 * pixel_color.x());
-            int ig = static_cast<int>(255.999 * pixel_color.y());
-            int ib = static_cast<int>(255.999 * pixel_color.z());
+            auto r = pixel_color.x();
+            auto g = pixel_color.y();
+            auto b = pixel_color.z();
 
-            // Divide the color by the number of samples.
+            // Divide the color by the number of samples and gamma-correct for gamma=2.0.
             auto scale = 1.0 / samples_per_pixel;
-            ir *= scale;
-            ig *= scale;
-            ib *= scale;
+            r = sqrt(scale * r);
+            g = sqrt(scale * g);
+            b = sqrt(scale * b);
 
             unsigned char *pos = &img[j * line_size + i * cel_size];
 
-            pos[0] = (unsigned char)(ir);
-            pos[1] = (unsigned char)(ig);
-            pos[2] = (unsigned char)(ib);
+            pos[0] = (unsigned char)(256 * clamp(r, 0.0, 0.999));
+            pos[1] = (unsigned char)(256 * clamp(g, 0.0, 0.999));
+            pos[2] = (unsigned char)(256 * clamp(b, 0.0, 0.999));
         }
     }
 
