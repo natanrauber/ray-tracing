@@ -3,6 +3,8 @@
 #include "src/bitmap.h"
 #include "src/camera.h"
 #include "src/hittable_list.h"
+#include "src/hittable.h"
+#include "src/material.h"
 #include "src/ray.h"
 #include "src/rtweekend.h"
 #include "src/sphere.h"
@@ -12,6 +14,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <map>
 
 using namespace std;
 
@@ -27,8 +30,11 @@ color ray_color(const ray &r, const hittable &world, int depth)
 
     if (world.hit(r, 0.001, infinity, rec))
     {
-        point3 target = rec.p + rec.normal + random_unit_vector();
-        return 0.5 * ray_color(ray(rec.p, target - rec.p), world, depth - 1);
+        ray scattered;
+        color attenuation;
+        if (rec.mat_ptr->scatter(r, rec, attenuation, scattered))
+            return attenuation * ray_color(scattered, world, depth - 1);
+        return color(0, 0, 0);
     }
 
     vec3 unit_direction = unit_vector(r.direction());
@@ -42,18 +48,33 @@ hittable_list readWorld(string fileName)
     hittable_list world;
     string myText;
 
+    map<string, shared_ptr<material>> materialTypes;
+
+    materialTypes.insert(pair<string, shared_ptr<material>>("material_ground", make_shared<lambertian>(color(0.8, 0.8, 0.0))));
+    materialTypes.insert(pair<string, shared_ptr<material>>("material_center", make_shared<lambertian>(color(0.7, 0.3, 0.3))));
+    materialTypes.insert(pair<string, shared_ptr<material>>("material_left", make_shared<metal>(color(0.8, 0.8, 0.8))));
+    materialTypes.insert(pair<string, shared_ptr<material>>("material_right", make_shared<metal>(color(0.8, 0.6, 0.2))));
+
     while (getline(infile, myText))
     {
         double arr[4];
+        string aux;
         int i = 0;
         stringstream ss(myText);
-        while (ss.good() && i < 4)
+        while (ss.good() && i < 5)
         {
-            ss >> arr[i];
+            if (i < 4)
+            {
+                ss >> arr[i];
+            }
+            else
+            {
+                ss >> aux;
+            }
             ++i;
         }
 
-        world.add(make_shared<sphere>(point3(arr[0], arr[1], arr[2]), arr[3]));
+        world.add(make_shared<sphere>(point3(arr[0], arr[1], arr[2]), arr[3], materialTypes.find(aux)->second));
     }
 
     return world;

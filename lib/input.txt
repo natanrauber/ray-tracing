@@ -1,2 +1,4 @@
-0   0       -1  0.5
-0   -100.5  -1  100
+ 0.0    -100.5  -1.0    100.0   material_ground
+ 0.0    0.0     -1.0    0.5     material_center
+-1.0    0.0     -1.0    0.5     material_left
+ 1.0    0.0     -1.0    0.5     material_right
