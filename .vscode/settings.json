@@ -48,7 +48,27 @@
     "xtr1common": "cpp",
     "xutility": "cpp",
     "string": "cpp",
-    "map": "cpp"
+    "map": "cpp",
+    "thread": "cpp",
+    "algorithm": "cpp",
+    "array": "cpp",
+    "charconv": "cpp",
+    "chrono": "cpp",
+    "cstdarg": "cpp",
+    "format": "cpp",
+    "forward_list": "cpp",
+    "functional": "cpp",
+    "list": "cpp",
+    "locale": "cpp",
+    "optional": "cpp",
+    "ratio": "cpp",
+    "sstream": "cpp",
+    "stop_token": "cpp",
+    "unordered_map": "cpp",
+    "xhash": "cpp",
+    "xlocbuf": "cpp",
+    "xlocmes": "cpp",
+    "xtree": "cpp"
   },
   "C_Cpp.errorSquiggles": "Enabled"
 }

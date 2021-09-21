@@ -12,9 +12,11 @@
 
 #include <fstream>
 #include <iostream>
+#include <map>
 #include <sstream>
 #include <string>
-#include <map>
+#include <thread>
+#include <chrono>
 
 using namespace std;
 
@@ -80,30 +82,12 @@ hittable_list readWorld(string fileName)
     return world;
 }
 
-int main()
+void render(int image_height, int image_width, int samples_per_pixel, int max_depth, camera cam, hittable_list world, int startColumn, int endColumn)
 {
-
-    // Image
-    const auto aspect_ratio = 16.0 / 9.0;
-    const int image_width = 400;
-    const int image_height = static_cast<int>(image_width / aspect_ratio);
-    const int samples_per_pixel = 100;
-    const int max_depth = 50;
-
-    img = new unsigned char[image_width * image_height * 3 * sizeof(int)];
-    cel_size = sizeof(unsigned char) * 3;
-    line_size = cel_size * image_width;
-
-    // Read world from file
-    hittable_list world = readWorld("input.txt");
-
-    // Camera
-    camera cam;
-
     // Render
     for (int j = image_height - 1; j >= 0; --j)
     {
-        for (int i = 0; i < image_width; ++i)
+        for (int i = startColumn; i < endColumn; ++i)
         {
             color pixel_color(0, 0, 0);
 
@@ -132,6 +116,58 @@ int main()
             pos[2] = (unsigned char)(256 * clamp(b, 0.0, 0.999));
         }
     }
+}
+
+int main()
+{
+
+    // Image
+    const auto aspect_ratio = 16.0 / 9.0;
+    const int image_width = 600;
+    const int image_height = static_cast<int>(image_width / aspect_ratio);
+    const int samples_per_pixel = 100;
+    const int max_depth = 50;
+
+    img = new unsigned char[image_width * image_height * 3 * sizeof(int)];
+    cel_size = sizeof(unsigned char) * 3;
+    line_size = cel_size * image_width;
+
+    // Read world from file
+    hittable_list world = readWorld("input.txt");
+
+    // Camera
+    camera cam;
+
+    using std::chrono::duration_cast;
+    using std::chrono::high_resolution_clock;
+    using std::chrono::seconds;
+
+    auto t1 = high_resolution_clock::now();
+
+    // Render
+    const int threadCount = 8;
+    std::thread threadList[threadCount];
+
+    for (int i = 0; i < threadCount; i++)
+    {
+        if (i == threadCount - 1)
+        {
+            threadList[i] = std::thread(render, image_height, image_width, samples_per_pixel, max_depth, cam, world, ((image_width / threadCount) * i), image_width);
+        }
+        else
+        {
+            threadList[i] = std::thread(render, image_height, image_width, samples_per_pixel, max_depth, cam, world, ((image_width / threadCount) * i), (((image_width / threadCount)) * i) + (image_width / threadCount));
+        }
+    }
+
+    for (int i = 0; i < threadCount; i++)
+    {
+        threadList[i].join();
+    }
+
+    auto t2 = high_resolution_clock::now();
+    auto ms_int = duration_cast<seconds>(t2 - t1);
+    std::cout << ms_int.count() << "s\n";
 
     ofstream outfile;
     outfile.open("image.bmp", ios::binary | ios::out);
