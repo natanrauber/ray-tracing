@@ -123,7 +123,7 @@ int main()
 
     // Image
     const auto aspect_ratio = 16.0 / 9.0;
-    const int image_width = 600;
+    const int image_width = 1920;
     const int image_height = static_cast<int>(image_width / aspect_ratio);
     const int samples_per_pixel = 100;
     const int max_depth = 50;
@@ -145,22 +145,23 @@ int main()
     auto t1 = high_resolution_clock::now();
 
     // Render
-    const int threadCount = 8;
-    std::thread threadList[threadCount];
+    const int threads = 6;
+    std::thread threadList[threads];
+    int pixel_per_thread = (image_width / threads);
 
-    for (int i = 0; i < threadCount; i++)
+    for (int i = 0; i < threads; i++)
     {
-        if (i == threadCount - 1)
+        if (i == threads - 1)
         {
-            threadList[i] = std::thread(render, image_height, image_width, samples_per_pixel, max_depth, cam, world, ((image_width / threadCount) * i), image_width);
+            threadList[i] = std::thread(render, image_height, image_width, samples_per_pixel, max_depth, cam, world, pixel_per_thread * i, image_width);
         }
         else
         {
-            threadList[i] = std::thread(render, image_height, image_width, samples_per_pixel, max_depth, cam, world, ((image_width / threadCount) * i), (((image_width / threadCount)) * i) + (image_width / threadCount));
+            threadList[i] = std::thread(render, image_height, image_width, samples_per_pixel, max_depth, cam, world, pixel_per_thread * i, (pixel_per_thread * i) + pixel_per_thread);
         }
     }
 
-    for (int i = 0; i < threadCount; i++)
+    for (int i = 0; i < threads; i++)
     {
         threadList[i].join();
     }
