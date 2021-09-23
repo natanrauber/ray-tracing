@@ -49,7 +49,6 @@ hittable_list readWorld(string fileName)
     ifstream infile(fileName);
     hittable_list world;
     string myText;
-
     map<string, shared_ptr<material>> materialTypes;
 
     materialTypes.insert(pair<string, shared_ptr<material>>("material_ground", make_shared<lambertian>(color(0.8, 0.8, 0.0))));
@@ -57,26 +56,58 @@ hittable_list readWorld(string fileName)
     materialTypes.insert(pair<string, shared_ptr<material>>("material_left", make_shared<metal>(color(0.8, 0.8, 0.8))));
     materialTypes.insert(pair<string, shared_ptr<material>>("material_right", make_shared<metal>(color(0.8, 0.6, 0.2))));
 
+    std::cout << "reading scene file\n";
+
+    /// for each line of file
     while (getline(infile, myText))
     {
+        string text;
+        string geometry;
         double arr[4];
-        string aux;
+        string materialType;
         int i = 0;
         stringstream ss(myText);
-        while (ss.good() && i < 5)
+
+        /// for each word of line
+        while (ss.good() && i < 6)
         {
-            if (i < 4)
+
+            /// define geometry type
+            if (i == 0)
             {
-                ss >> arr[i];
+                ss >> text;
+
+                /// skip comments
+                if (text == "#")
+                {
+                    break;
+                }
+                else
+                {
+                    geometry = text;
+                }
             }
+
+            /// define geometry size and position
+            else if (i > 0 && i < 5)
+            {
+                ss >> arr[i - 1];
+            }
+
+            /// define geometry material
             else
             {
-                ss >> aux;
+                ss >> materialType;
             }
+
             ++i;
         }
 
-        world.add(make_shared<sphere>(point3(arr[0], arr[1], arr[2]), arr[3], materialTypes.find(aux)->second));
+        /// add geometry to list
+        if (geometry == "sphere")
+        {
+            world.add(make_shared<sphere>(point3(arr[0], arr[1], arr[2]), arr[3], materialTypes.find(materialType)->second));
+        }
     }
 
     return world;
@@ -123,9 +154,9 @@ int main()
 
     // Image
     const auto aspect_ratio = 16.0 / 9.0;
-    const int image_width = 1920;
+    const int image_width = 800;
     const int image_height = static_cast<int>(image_width / aspect_ratio);
-    const int samples_per_pixel = 100;
+    const int samples_per_pixel = 50;
     const int max_depth = 50;
 
     img = new unsigned char[image_width * image_height * 3 * sizeof(int)];
@@ -149,6 +180,8 @@ int main()
     std::thread threadList[threads];
     int pixel_per_thread = (image_width / threads);
 
+    std::cout << "rendering\n";
+
     for (int i = 0; i < threads; i++)
     {
         if (i == threads - 1)
@@ -168,7 +201,7 @@ int main()
 
     auto t2 = high_resolution_clock::now();
     auto ms_int = duration_cast<seconds>(t2 - t1);
-    std::cout << ms_int.count() << "s\n";
+    std::cout << "render time: " << ms_int.count() << "s\n";
 
     ofstream outfile;
     outfile.open("image.bmp", ios::binary | ios::out);
