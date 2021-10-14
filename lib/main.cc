@@ -1,25 +1,26 @@
+#include <chrono>
+#include <cmath>
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <map>
+#include <sstream>
+#include <string>
+#include <thread>
+#include <Windows.h>
 
+using namespace std;
 
 #include "src/bitmap.h"
 #include "src/camera.h"
 #include "src/hittable_list.h"
 #include "src/hittable.h"
 #include "src/material.h"
+#include "src/moving_sphere.h"
 #include "src/ray.h"
 #include "src/rtweekend.h"
 #include "src/sphere.h"
 #include "src/vec3.h"
-
-#include <fstream>
-#include <iostream>
-#include <map>
-#include <sstream>
-#include <string>
-#include <thread>
-#include <chrono>
-#include <Windows.h>
-
-using namespace std;
 
 color ray_color(const ray &r, const hittable &world, int depth)
 {
@@ -121,9 +122,9 @@ hittable_list random_scene()
     auto ground_material = make_shared<lambertian>(color(0.5, 0.5, 0.5));
     world.add(make_shared<sphere>(point3(0, -1000, 0), 1000, ground_material));
 
-    for (int a = -10; a < 10; a++)
+    for (int a = -5; a < 5; a++)
     {
-        for (int b = -10; b < 10; b++)
+        for (int b = -5; b < 5; b++)
         {
             auto choose_mat = random_double();
             point3 center(a + 0.9 * random_double(), 0.2, b + 0.9 * random_double());
@@ -137,7 +138,9 @@ hittable_list random_scene()
                     // diffuse
                     auto albedo = color::random() * color::random();
                     sphere_material = make_shared<lambertian>(albedo);
-                    world.add(make_shared<sphere>(center, 0.2, sphere_material));
+                    auto center2 = center + vec3(0, random_double(0, .5), 0);
+                    world.add(make_shared<moving_sphere>(
+                        center, center2, 0.0, 1.0, 0.2, sphere_material));
                 }
                 else if (choose_mat < 0.95)
                 {
@@ -204,7 +207,7 @@ void render(int image_height, int image_width, int samples_per_pixel, int max_de
             pos[1] = (unsigned char)(256 * clamp(g, 0.0, 0.999));
             pos[2] = (unsigned char)(256 * clamp(b, 0.0, 0.999));
         }
-        Sleep(150);
+        Sleep(100);
     }
 }
 
@@ -213,10 +216,10 @@ int main()
 
     // Image
     const auto aspect_ratio = 16.0 / 9.0;
-    const int image_width = 600;
+    const int image_width = 720;
     const int image_height = static_cast<int>(image_width / aspect_ratio);
-    const int samples_per_pixel = 10;
-    const int max_depth = 10;
+    const int samples_per_pixel = 50;
+    const int max_depth = 3;
 
     img = new unsigned char[image_width * image_height * 3 * sizeof(int)];
     cel_size = sizeof(unsigned char) * 3;
@@ -233,7 +236,7 @@ int main()
     auto dist_to_focus = 10.0;
     auto aperture = 0.1;
 
-    camera cam(lookfrom, lookat, vup, 20, aspect_ratio, aperture, dist_to_focus);
+    camera cam(lookfrom, lookat, vup, 20, aspect_ratio, aperture, dist_to_focus, 0.0, 1.0);
 
     using std::chrono::duration_cast;
     using std::chrono::high_resolution_clock;
@@ -252,23 +255,16 @@ int main()
 
     std::cout << "rendering with " << threads << " threads\n";
 
-    double x = 10;
-    double z = 10;
+    double x = 5;
+    double z = 2;
 
-    int images = 120; // only multiples by 4 at this time
-    double moveSize = ((4 * x) / images) * 2;
+    int images = 300; // only multiples by 4 at this time
+    double moveSize = ((4 * x) / images) * 0.5;
     for (int c = 0; c < images; c++)
     {
-        camera cam(vec3(x, 1, z), lookat, vup, 90, aspect_ratio, aperture, dist_to_focus);
+        camera cam(vec3(x, 1, z), lookat, vup, 90, aspect_ratio, aperture, dist_to_focus, 0.0, 1.0);
 
-        if (c < (images * 0.25))
-            x -= moveSize;
-        else if (c < (images * 0.5))
-            z -= moveSize;
-        else if (c < (images * 0.75))
-            x += moveSize;
-        else
-            z += moveSize;
+        x -= moveSize;
 
         for (int i = 0; i < threads; i++)
         {
@@ -289,7 +285,7 @@ int main()
 
         auto t2 = high_resolution_clock::now();
         auto ms_int = duration_cast<seconds>(t2 - t1);
-        std::cout << "render time: " << ms_int.count() << "s\n";
+        std::cout << "render time: " << (c + 1) << "/200 " << ms_int.count() << "s\n";
 
         ofstream outfile;
         outfile.open(imgPreffix + to_string(c) + imgSuffix, ios::binary | ios::out);

@@ -84,7 +84,7 @@ void writeBitmapFile(ofstream &out, int width, int height)
 	out.write((char *)fileHeader, fileHeaderSize);
 	out.write((char *)infoHeader, infoHeaderSize);
 
-	for (int y = height - 1; y > 0; y--)
+	for (int y = height; y > 0; y--)
 	{
 		for (int x = 0; x < width; x++)
 		{
