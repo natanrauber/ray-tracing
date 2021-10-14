@@ -1,5 +1,5 @@
 # comment example
-sphere  0.0     -100.5  -1.0    100.0   material_ground
-sphere  0.0     0.0     -1.0    0.5     material_center
-sphere  -1.0    0.0     -1.0    0.5     material_left
-sphere  1.0     0.0     -1.0    0.5     material_right
+sphere  0.0     -100.5  -1.0    100.0   material_diffuse
+sphere  0.0     0.0     -1.0    0.5     material_glass
+sphere  -1.0    0.0     -1.0    0.5     material_diffuse
+sphere  1.0     0.0     -1.0    0.5     material_metal

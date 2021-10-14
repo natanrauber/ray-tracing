@@ -46,74 +46,85 @@ color ray_color(const ray &r, const hittable &world, int depth)
     return (1.0 - t) * color(1.0, 1.0, 1.0) + t * color(0.5, 0.7, 1.0);
 }
 
-// hittable_list readWorld(string fileName)
-// {
-//     ifstream infile(fileName);
-//     hittable_list world;
-//     string myText;
-//     map<string, shared_ptr<material>> materialTypes;
+hittable_list readWorld(string fileName)
+{
+    ifstream infile(fileName);
+    hittable_list world;
+    string myText;
+    map<string, shared_ptr<material>> materialTypes;
 
-//     materialTypes.insert(pair<string, shared_ptr<material>>("material_ground", make_shared<lambertian>(color(0.8, 0.8, 0.0))));
-//     materialTypes.insert(pair<string, shared_ptr<material>>("material_center", make_shared<lambertian>(color(0.7, 0.3, 0.3))));
-//     materialTypes.insert(pair<string, shared_ptr<material>>("material_left", make_shared<metal>(color(0.8, 0.8, 0.8))));
-//     materialTypes.insert(pair<string, shared_ptr<material>>("material_right", make_shared<dielectric>(1.5)));
+    // diffuse
+    auto albedoDiffuse = color::random() * color::random();
+    auto material_diffuse = make_shared<lambertian>(albedoDiffuse);
 
-//     std::cout << "reading scene file\n";
+    // metal
+    auto albedoMetal = color::random(0.5, 1);
+    auto fuzz = random_double(0, 0.5);
+    auto material_metal = make_shared<metal>(albedoMetal, fuzz);
 
-//     /// for each line of file
-//     while (getline(infile, myText))
-//     {
-//         string text;
-//         string geometry;
-//         double arr[4];
-//         string materialType;
-//         int i = 0;
-//         stringstream ss(myText);
+    // glass
+    auto material_glass = make_shared<dielectric>(1.5);
 
-//         /// for each word of line
-//         while (ss.good() && i < 6)
-//         {
+    materialTypes.insert(pair<string, shared_ptr<material>>("material_diffuse", material_diffuse));
+    materialTypes.insert(pair<string, shared_ptr<material>>("material_metal", material_metal));
+    materialTypes.insert(pair<string, shared_ptr<material>>("material_glass", material_glass));
 
-//             /// define geometry type
-//             if (i == 0)
-//             {
-//                 ss >> text;
+    std::cout << "Reading scene file\n";
 
-//                 /// skip comments
-//                 if (text == "#")
-//                 {
-//                     break;
-//                 }
-//                 else
-//                 {
-//                     geometry = text;
-//                 }
-//             }
+    /// for each line of file
+    while (getline(infile, myText))
+    {
+        string text;
+        string geometry;
+        double arr[4];
+        string materialType;
+        int i = 0;
+        stringstream ss(myText);
 
-//             /// define geometry size and position
-//             else if (i > 0 && i < 5)
-//             {
-//                 ss >> arr[i - 1];
-//             }
+        /// for each word of line
+        while (ss.good() && i < 6)
+        {
 
-//             /// define geometry material
-//             else
-//             {
-//                 ss >> materialType;
-//             }
+            /// define geometry type
+            if (i == 0)
+            {
+                ss >> text;
 
-//             ++i;
-//         }
+                /// skip comments
+                if (text == "#")
+                {
+                    break;
+                }
+                else
+                {
+                    geometry = text;
+                }
+            }
 
-//         /// add geometry to list
-//         if (geometry == "sphere")
-//         {
-//             world.add(make_shared<sphere>(point3(-arr[0], arr[1], arr[2]), arr[3], materialTypes.find(materialType)->second));
-//         }
-//     }
+            /// define geometry size and position
+            else if (i > 0 && i < 5)
+            {
+                ss >> arr[i - 1];
+            }
 
-//     return world;
-// }
+            /// define geometry material
+            else
+            {
+                ss >> materialType;
+            }
+
+            ++i;
+        }
+
+        /// add geometry to list
+        if (geometry == "sphere")
+        {
+            world.add(make_shared<sphere>(point3(-arr[0], arr[1], arr[2]), arr[3], materialTypes.find(materialType)->second));
+        }
+    }
+
+    return world;
+}
 
 hittable_list random_scene()
 {
@@ -206,8 +217,8 @@ void render(int image_height, int image_width, int samples_per_pixel, int max_de
             pos[0] = (unsigned char)(256 * clamp(r, 0.0, 0.999));
             pos[1] = (unsigned char)(256 * clamp(g, 0.0, 0.999));
             pos[2] = (unsigned char)(256 * clamp(b, 0.0, 0.999));
+            Sleep(5);
         }
-        Sleep(100);
     }
 }
 
@@ -218,16 +229,27 @@ int main()
     const auto aspect_ratio = 16.0 / 9.0;
     const int image_width = 720;
     const int image_height = static_cast<int>(image_width / aspect_ratio);
-    const int samples_per_pixel = 50;
-    const int max_depth = 3;
+    const int samples_per_pixel = 100;
+    const int max_depth = 5;
 
     img = new unsigned char[image_width * image_height * 3 * sizeof(int)];
     cel_size = sizeof(unsigned char) * 3;
     line_size = cel_size * image_width;
 
     // Read world from file
-    // hittable_list world = readWorld("input.txt");
-    hittable_list world = random_scene();
+    hittable_list world;
+    string readWorldFromFile;
+    std::cout << "Read input file? [Y] / [N]: ";
+    std::cin >> readWorldFromFile;
+
+    if (readWorldFromFile == "Y" || readWorldFromFile == "y")
+    {
+        world = readWorld("input.txt");
+    }
+    else if (readWorldFromFile == "N" || readWorldFromFile == "n")
+    {
+        world = random_scene();
+    }
 
     // Camera
     point3 lookfrom(13, 2, 3);
@@ -238,33 +260,42 @@ int main()
 
     camera cam(lookfrom, lookat, vup, 20, aspect_ratio, aperture, dist_to_focus, 0.0, 1.0);
 
-    using std::chrono::duration_cast;
-    using std::chrono::high_resolution_clock;
-    using std::chrono::seconds;
-
-    auto t1 = high_resolution_clock::now();
-
     // Output image
     string imgPreffix = "images/image";
     string imgSuffix = ".bmp";
 
     // Render
-    const int threads = 6;
-    std::thread threadList[threads];
+    std::thread *threadList;
+    int threads;
+
+    std::cout << "Threads to use: ";
+    std::cin >> threads;
+
+    threadList = new std::thread[threads];
     int pixel_per_thread = (image_width / threads);
 
-    std::cout << "rendering with " << threads << " threads\n";
-
     double x = 5;
+    double y = 1;
     double z = 2;
 
-    int images = 300; // only multiples by 4 at this time
-    double moveSize = ((4 * x) / images) * 0.5;
+    double images;
+    std::cout << "Images to render: ";
+    std::cin >> images;
+    double moveSize = (x * 2) / images;
+
+    /// get time before start rendering
+    using std::chrono::duration_cast;
+    using std::chrono::high_resolution_clock;
+    using std::chrono::seconds;
+    auto t0 = high_resolution_clock::now();
+    auto t1 = t0;
+    auto sumRenderTime = duration_cast<seconds>(t1 - t0);
+
+    std::cout << "Rendering " << images << " images with " << threads << " threads\n";
+\
     for (int c = 0; c < images; c++)
     {
-        camera cam(vec3(x, 1, z), lookat, vup, 90, aspect_ratio, aperture, dist_to_focus, 0.0, 1.0);
-
-        x -= moveSize;
+        camera cam(vec3(x, y, z), lookat, vup, 90, aspect_ratio, aperture, dist_to_focus, 0.0, 1.0);
 
         for (int i = 0; i < threads; i++)
         {
@@ -283,9 +314,16 @@ int main()
             threadList[i].join();
         }
 
-        auto t2 = high_resolution_clock::now();
-        auto ms_int = duration_cast<seconds>(t2 - t1);
-        std::cout << "render time: " << (c + 1) << "/200 " << ms_int.count() << "s\n";
+        x -= moveSize;
+
+        /// get time after each render
+        t1 = high_resolution_clock::now();
+        sumRenderTime = duration_cast<seconds>(t1 - t0);
+
+        /// print image number
+        std::cout << (c + 1) << "/" << images;
+        /// print render time
+        std::cout << " - render time: " << sumRenderTime.count() << "s\n";
 
         ofstream outfile;
         outfile.open(imgPreffix + to_string(c) + imgSuffix, ios::binary | ios::out);
